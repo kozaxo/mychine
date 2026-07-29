@@ -54,6 +54,13 @@ what a hardcoded default used to do. Add a new entry for every account
 you provision, or pass `-e hm_flake_target=<key>` to target one
 explicitly.
 
+Each entry also declares its own `system` (e.g. `"aarch64-linux"` for a
+Parallels VM on Apple Silicon vs. `"x86_64-linux"` for a bare-metal box),
+rather than one `system` shared across every `homeConfigurations` entry.
+This keeps the flake pure — no `--impure`, no reading the real machine's
+architecture at eval time — at the cost of having to set `system`
+explicitly for every new machine, same as `username`.
+
 ## Ported from kozaxo/nix
 
 This repo started as a port of [kozaxo/nix](https://github.com/kozaxo/nix)
