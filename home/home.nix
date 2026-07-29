@@ -70,7 +70,7 @@
       # keychain zstyle must be set before oh-my-zsh is sourced (order 550 < compinit 600).
       (lib.mkOrder 550 ''
         zstyle :omz:plugins:keychain agents     gpg,ssh
-        zstyle :omz:plugins:keychain identities github gitlab-is4s gitlab-aspn gitlab-antcenter gitlab-cps
+        zstyle :omz:plugins:keychain identities
       '')
       ''
         # cl: cd and ls combined
