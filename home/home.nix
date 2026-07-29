@@ -45,7 +45,8 @@
     keychain
 
     # fonts
-    nerd-fonts.fira-code
+    fira-code # plain family, matches wezterm.lua's font name exactly
+    nerd-fonts.fira-code # patched variant, for prompt/glyph icons
   ];
 
   # --- session / environment ---
