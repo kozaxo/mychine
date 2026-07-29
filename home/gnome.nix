@@ -32,17 +32,23 @@ let
     '';
   };
 
-  # --- everforest-icon-theme ---
-  # Same upstream repo as the GTK theme; icons/ ships pre-built, no build step.
-  everforest-icon-theme = pkgs.stdenv.mkDerivation {
-    pname = "everforest-icon-theme";
+  # --- kora-icon-theme ---
+  # https://github.com/bikass/kora — ships pre-built, no build step; just
+  # copy the "kora" folder in, per upstream's own install instructions.
+  kora-icon-theme = pkgs.stdenv.mkDerivation {
+    pname = "kora-icon-theme";
     version = "unstable";
-    src = everforest-gtk-theme.src; # reuse the same fetch, no extra download
+    src = pkgs.fetchFromGitHub {
+      owner = "bikass";
+      repo = "kora";
+      rev = "master";
+      hash = pkgs.lib.fakeHash;
+    };
     nativeBuildInputs = [ pkgs.hicolor-icon-theme ];
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/icons
-      cp -r icons/Everforest-Dark $out/share/icons/
+      cp -r kora $out/share/icons/
       runHook postInstall
     '';
   };
@@ -67,7 +73,7 @@ in
 
     # custom themes (built above)
     everforest-gtk-theme
-    everforest-icon-theme
+    kora-icon-theme
   ];
 
   # --- dconf ---
@@ -82,7 +88,7 @@ in
       clock-show-weekday = false;
       font-hinting = "slight";
       gtk-theme = "Everforest-Dark-Medium";
-      icon-theme = "Everforest-Dark";
+      icon-theme = "kora";
       cursor-theme = "Yaru";
     };
 
