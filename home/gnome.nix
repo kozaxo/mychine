@@ -8,6 +8,11 @@ let
   # -c dark --tweaks medium produces the "Everforest-Dark-Medium" folder
   # name (see install.sh's THEME_DIR construction) — matches the dconf
   # gtk-theme/user-theme settings below.
+  # -n Everforest is required, not optional: install.sh picks the theme
+  # name via `${name:-$THEME_NAME}`, and Nix's stdenv always exports a
+  # `$name` env var (= pname-version) for every build. Without -n, that
+  # collides and silently names the theme after the derivation instead
+  # (e.g. "everforest-gtk-theme-unstable-Dark-Medium").
   # First build will fail printing the correct hash; paste it in and rebuild.
   everforest-gtk-theme = pkgs.stdenv.mkDerivation {
     pname = "everforest-gtk-theme";
@@ -22,7 +27,7 @@ let
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/themes
-      bash themes/install.sh -d $out/share/themes -c dark --tweaks medium
+      bash themes/install.sh -d $out/share/themes -n Everforest -c dark --tweaks medium
       runHook postInstall
     '';
   };
