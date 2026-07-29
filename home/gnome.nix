@@ -16,7 +16,7 @@ let
       owner = "Fausto-Korpsvart";
       repo = "Everforest-GTK-Theme";
       rev = "master";
-      hash = pkgs.lib.fakeHash;
+      hash = "sha256-XHO6NoXJwwZ8gBzZV/hJnVq5BvkEKYWvqLBQT00dGdE=";
     };
     nativeBuildInputs = [ pkgs.sassc pkgs.gtk-engine-murrine ];
     installPhase = ''
