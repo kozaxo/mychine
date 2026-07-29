@@ -18,7 +18,7 @@
   vars:
     repo_root: "{{ playbook_dir }}/.."
     nix_bin_dir: /nix/var/nix/profiles/default/bin
-    hm_flake_target: "{{ ansible_user_id }}"
+    hm_flake_target: "{{ ansible_facts['user_id'] }}"
   roles:
     - base
     - nix

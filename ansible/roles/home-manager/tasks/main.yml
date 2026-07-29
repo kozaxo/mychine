@@ -1,7 +1,7 @@
 ---
 - name: Ensure ~/.config/nix exists
   file:
-    path: "{{ ansible_env.HOME }}/.config/nix"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nix"
     state: directory
     mode: "0755"
   become: false
@@ -9,7 +9,7 @@
 # Belt-and-suspenders — Determinate already enables these globally.
 - name: Enable flakes + nix-command for this user
   copy:
-    dest: "{{ ansible_env.HOME }}/.config/nix/nix.conf"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nix/nix.conf"
     content: |
       experimental-features = nix-command flakes
     mode: "0644"
@@ -32,20 +32,20 @@
 
 - name: Check for Nix-managed zsh
   stat:
-    path: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
+    path: "{{ ansible_facts['env']['HOME'] }}/.nix-profile/bin/zsh"
   register: hm_zsh
 
 - name: Register Nix zsh in /etc/shells
   lineinfile:
     path: /etc/shells
-    line: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
+    line: "{{ ansible_facts['env']['HOME'] }}/.nix-profile/bin/zsh"
     create: true
   become: true
   when: hm_zsh.stat.exists
 
 - name: Set Nix zsh as login shell
   user:
-    name: "{{ ansible_user_id }}"
-    shell: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
+    name: "{{ ansible_facts['user_id'] }}"
+    shell: "{{ ansible_facts['env']['HOME'] }}/.nix-profile/bin/zsh"
   become: true
   when: hm_zsh.stat.exists

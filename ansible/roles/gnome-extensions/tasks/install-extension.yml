@@ -1,7 +1,7 @@
 ---
 - name: Check if {{ extension_uuid }} is already installed
   stat:
-    path: "{{ ansible_env.HOME }}/.local/share/gnome-shell/extensions/{{ extension_uuid }}/metadata.json"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/share/gnome-shell/extensions/{{ extension_uuid }}/metadata.json"
   register: ext_installed
 
 - name: Download {{ extension_uuid }}
