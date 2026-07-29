@@ -30,6 +30,7 @@
 
     # development
     git
+    gh
     delta
     git-lfs
     lazygit
