@@ -1,6 +1,7 @@
 ---
 # Provisions a fresh Ubuntu box: system packages -> Nix -> apt-installed GUI
-# apps (Brave, WezTerm) -> home-manager (dotfiles + CLI tools).
+# apps (Brave, WezTerm, VS Code) -> GNOME Shell extensions -> home-manager
+# (dotfiles + CLI tools).
 #
 # Usage:
 #   cd mychine/ansible
@@ -17,9 +18,10 @@
   vars:
     repo_root: "{{ playbook_dir }}/.."
     nix_bin_dir: /nix/var/nix/profiles/default/bin
-    hm_flake_target: "{{ ansible_user_id }}"
+    hm_flake_target: "{{ ansible_facts['user_id'] }}"
   roles:
     - base
     - nix
     - gui-apps
+    - gnome-extensions
     - home-manager

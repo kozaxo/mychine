@@ -4,42 +4,24 @@
 # sandbox problem for Brave and the OpenGL/driver-linking problem for
 # WezTerm entirely, rather than working around them with nixGL/setuid hacks.
 
-# --- Brave Browser ------------------------------------------------------
+# --- Add apt keyrings + sources (Brave, WezTerm, VS Code) -------------------
 
-- name: Add Brave browser apt keyring
+- name: Add Brave apt keyring
   get_url:
     url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
     dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
     mode: "0644"
   become: true
+  register: brave_keyring
 
-- name: Add Brave browser apt source (DEB822 .sources file)
+# DEB822 .sources file, not the older .list format.
+- name: Add Brave apt source
   get_url:
     url: https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
     dest: /etc/apt/sources.list.d/brave-browser-release.sources
     mode: "0644"
   become: true
-
-- name: Update apt cache after adding Brave repo
-  apt:
-    update_cache: true
-  become: true
-
-- name: Install Brave browser
-  apt:
-    name: brave-browser
-    state: present
-  become: true
-
-- name: Fix Brave's chrome-sandbox setuid bit
-  file:
-    path: /usr/lib/brave-browser/chrome-sandbox
-    mode: "4755"
-    owner: root
-    group: root
-  become: true
-
-# --- WezTerm --------------------------------------------------------------
+  register: brave_source
 
 - name: Add WezTerm apt keyring
   shell: |
@@ -48,6 +30,7 @@
     executable: /bin/bash
     creates: /usr/share/keyrings/wezterm-fury.gpg
   become: true
+  register: wezterm_keyring
 
 - name: Add WezTerm apt source
   copy:
@@ -55,10 +38,40 @@
     content: "deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *\n"
     mode: "0644"
   become: true
+  register: wezterm_source
 
-- name: Update apt cache after adding WezTerm repo
+- name: Add VS Code apt keyring
+  shell: |
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --yes --dearmor -o /usr/share/keyrings/microsoft.gpg
+  args:
+    executable: /bin/bash
+    creates: /usr/share/keyrings/microsoft.gpg
+  become: true
+  register: vscode_keyring
+
+- name: Add VS Code apt source
+  copy:
+    dest: /etc/apt/sources.list.d/vscode.list
+    content: "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main\n"
+    mode: "0644"
+  become: true
+  register: vscode_source
+
+- name: Update apt cache for new repos
   apt:
     update_cache: true
+  become: true
+  when: >
+    brave_keyring is changed or brave_source is changed or
+    wezterm_keyring is changed or wezterm_source is changed or
+    vscode_keyring is changed or vscode_source is changed
+
+# --- Install packages -------------------------------------------------------
+
+- name: Install Brave
+  apt:
+    name: brave-browser
+    state: present
   become: true
 
 - name: Install WezTerm
@@ -67,18 +80,26 @@
     state: present
   become: true
 
-- name: Check current default x-terminal-emulator alternative
+- name: Install VS Code
+  apt:
+    name: code
+    state: present
+  become: true
+
+# --- Make WezTerm the default terminal --------------------------------------
+
+- name: Check default x-terminal-emulator
   command: update-alternatives --query x-terminal-emulator
   register: term_alt
   changed_when: false
   failed_when: false
 
-- name: Register WezTerm as an x-terminal-emulator alternative
+- name: Register WezTerm as x-terminal-emulator alternative
   command: update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/wezterm 100
   become: true
   when: "'/usr/bin/wezterm' not in term_alt.stdout"
 
-- name: Set WezTerm as the default x-terminal-emulator
+- name: Set WezTerm as default x-terminal-emulator
   command: update-alternatives --set x-terminal-emulator /usr/bin/wezterm
   become: true
   when: "'Value: /usr/bin/wezterm' not in term_alt.stdout"

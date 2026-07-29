@@ -3,39 +3,54 @@
 # To refresh from a live system: dconf dump / > ~/dconf-backup.txt
 let
 
-  # --- kanagawa-gtk-theme ---
+  theme = import ./theme.nix;
+
+  # --- everforest-gtk-theme ---
   # Not in nixpkgs, built from source using the upstream install.sh + sassc.
+  # -c dark --tweaks medium produces the "Everforest-Dark-Medium" folder
+  # name (see install.sh's THEME_DIR construction) — matches the dconf
+  # gtk-theme/user-theme settings below.
+  # -n Everforest is required, not optional: install.sh picks the theme
+  # name via `${name:-$THEME_NAME}`, and Nix's stdenv always exports a
+  # `$name` env var (= pname-version) for every build. Without -n, that
+  # collides and silently names the theme after the derivation instead
+  # (e.g. "everforest-gtk-theme-unstable-Dark-Medium").
   # First build will fail printing the correct hash; paste it in and rebuild.
-  kanagawa-gtk-theme = pkgs.stdenv.mkDerivation {
-    pname = "kanagawa-gtk-theme";
+  everforest-gtk-theme = pkgs.stdenv.mkDerivation {
+    pname = "everforest-gtk-theme";
     version = "unstable";
     src = pkgs.fetchFromGitHub {
       owner = "Fausto-Korpsvart";
-      repo = "Kanagawa-GKT-Theme";
-      rev = "main";
-      hash = "sha256-UdMoMx2DoovcxSp/zBZ3PRv/Qpj+prd0uPm1gmdak2E=";
+      repo = "Everforest-GTK-Theme";
+      rev = "master";
+      hash = "sha256-XHO6NoXJwwZ8gBzZV/hJnVq5BvkEKYWvqLBQT00dGdE=";
     };
     nativeBuildInputs = [ pkgs.sassc pkgs.gtk-engine-murrine ];
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/themes
-      # Install only the dark variant — matches dconf gtk-theme setting.
-      bash themes/install.sh -d $out/share/themes -c dark
+      bash themes/install.sh -d $out/share/themes -n ${theme.gtk.baseName} -c dark --tweaks medium
       runHook postInstall
     '';
   };
 
-  # --- kanagawa-icon-theme ---
-  # Same upstream repo as the GTK theme, icons/ subfolder.
-  kanagawa-icon-theme = pkgs.stdenv.mkDerivation {
-    pname = "kanagawa-icon-theme";
+  # --- kora-icon-theme ---
+  # https://github.com/bikass/kora — ships pre-built, no build step; just
+  # copy the "kora" folder in, per upstream's own install instructions.
+  kora-icon-theme = pkgs.stdenv.mkDerivation {
+    pname = "kora-icon-theme";
     version = "unstable";
-    src = kanagawa-gtk-theme.src; # reuse the same fetch, no extra download
+    src = pkgs.fetchFromGitHub {
+      owner = "bikass";
+      repo = "kora";
+      rev = "master";
+      hash = "sha256-jMVn6RlFSbPU4T6W+nJpuGZzMXOacQOFPbrNKhtzxzg=";
+    };
     nativeBuildInputs = [ pkgs.hicolor-icon-theme ];
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/icons
-      cp -r icons/Kanagawa* $out/share/icons/
+      cp -r kora $out/share/icons/
       runHook postInstall
     '';
   };
@@ -44,22 +59,23 @@ in
 {
   # --- packages ---
 
-  home.packages = with pkgs; [
-    # extensions
-    gnomeExtensions.dash-to-dock
-    gnomeExtensions.arc-menu
-    gnomeExtensions.user-themes
-    gnomeExtensions.vitals
-    gnomeExtensions.paperwm
+  # GNOME Shell extensions are NOT here — they're installed by
+  # ansible/roles/gnome-extensions from extensions.gnome.org, matched to
+  # this machine's actual gnome-shell version. gnomeExtensions.* packages
+  # are compiled against whatever GNOME version this flake's nixpkgs
+  # happens to target, which silently drifts from Ubuntu's fixed
+  # per-LTS-release shell version and breaks at runtime (OUT OF DATE /
+  # ERROR — see STRUCTURE.md).
 
+  home.packages = with pkgs; [
     # theme dependencies & tooling
     gtk-engine-murrine # required by many GTK2/3 themes
     gnome-tweaks
     yaru-theme # provides the Yaru cursor
 
     # custom themes (built above)
-    kanagawa-gtk-theme
-    kanagawa-icon-theme
+    everforest-gtk-theme
+    kora-icon-theme
   ];
 
   # --- dconf ---
@@ -73,9 +89,9 @@ in
       clock-show-seconds = true;
       clock-show-weekday = false;
       font-hinting = "slight";
-      gtk-theme = "Kanagawa-Dark";
-      icon-theme = "Kanagawa";
-      cursor-theme = "Yaru";
+      gtk-theme = theme.gtk.name;
+      icon-theme = theme.icon.name;
+      cursor-theme = theme.cursor.name;
     };
 
     # --- session ---
@@ -193,7 +209,7 @@ in
     # --- user-theme extension ---
 
     "org/gnome/shell/extensions/user-theme" = {
-      name = "Kanagawa-Dark";
+      name = theme.gtk.name;
     };
 
     # --- dash-to-dock ---
@@ -210,16 +226,16 @@ in
 
     "org/gnome/shell/extensions/arcmenu" = {
       enable-menu-hotkey = true;
-      menu-background-color = "rgb(15,1,37)";
-      menu-border-color = "rgb(63,62,64)";
+      menu-background-color = theme.arcmenu.background;
+      menu-border-color = theme.arcmenu.border;
       menu-button-appearance = "Icon";
-      menu-foreground-color = "rgb(211,218,227)";
-      menu-item-active-bg-color = "rgba(228,228,226,0.15)";
-      menu-item-active-fg-color = "rgb(255,255,255)";
-      menu-item-hover-bg-color = "rgba(238,238,236,0.08)";
-      menu-item-hover-fg-color = "rgb(255,255,255)";
+      menu-foreground-color = theme.arcmenu.foreground;
+      menu-item-active-bg-color = theme.arcmenu.activeBg;
+      menu-item-active-fg-color = theme.arcmenu.activeFg;
+      menu-item-hover-bg-color = theme.arcmenu.hoverBg;
+      menu-item-hover-fg-color = theme.arcmenu.hoverFg;
       menu-layout = "Plasma";
-      menu-separator-color = "rgb(63,62,64)";
+      menu-separator-color = theme.arcmenu.separator;
       override-menu-theme = true;
       position-in-panel = "Center";
       search-entry-border-radius = lib.hm.gvariant.mkTuple [
@@ -257,6 +273,8 @@ in
       window-gap = 30;
       show-window-position-bar = false;
       use-default-background = true;
+      disable-scratch-in-overview = false;
+      only-scratch-in-overview = false;
     };
 
     "org/gnome/shell/extensions/paperwm/keybindings" = {
@@ -287,6 +305,7 @@ in
     "org/gnome/nautilus/preferences" = {
       default-folder-viewer = "list-view";
       search-view = "list-view";
+      search-filter-time-type = "last_modified";
     };
 
   };

@@ -6,6 +6,29 @@ if wezterm.config_builder then
   config = wezterm.config_builder()
 end
 
+-- font/color_scheme are also recorded in home/theme.nix's `wezterm` table —
+-- Lua can't import that file directly, so keep the two in sync by hand.
+--
+-- JetBrains Mono is bundled inside WezTerm itself, so this never depends on
+-- a system/Nix font actually being discoverable — Fira Code kept failing to
+-- resolve because WezTerm is apt-installed and doesn't see Nix-profile fonts.
+config.font = wezterm.font("JetBrains Mono", { weight = "Regular" })
+config.font_size = 12.0
+
+config.color_scheme = 'Everforest Dark Medium (Gogh)'
+
+config.window_background_opacity = 0.65
+config.window_decorations = "RESIZE" -- drop the native title bar, keep resizable edges
+config.enable_tab_bar = true
+config.use_fancy_tab_bar = false
+config.hide_tab_bar_if_only_one_tab = true
+config.window_padding = {
+  left = 8,
+  right = 8,
+  top = 8,
+  bottom = 8,
+}
+
 config.keys = {
   {
     key = 'Enter',

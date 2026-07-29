@@ -4,7 +4,7 @@
 
   # home.username / home.homeDirectory are injected per-host in flake.nix.
 
-  home.stateVersion = "24.11";
+  home.stateVersion = "24.05";
 
   # Required for standalone Home Manager on non-NixOS Linux.
   targets.genericLinux.enable = true;
@@ -15,8 +15,6 @@
   # integration Nix can't provide cleanly on non-NixOS.
 
   home.packages = with pkgs; [
-    home-manager # pin the hm binary in the profile so it persists after every switch
-
     # system utilities
     bat
     curl
@@ -32,19 +30,25 @@
 
     # development
     git
+    xsel
+    gh
+    delta
+    git-lfs
     lazygit
     tmux
     tmuxinator
     direnv
     podman
     podman-compose
+    uv
 
     # security
     gnupg
     keychain
 
     # fonts
-    nerd-fonts.fira-code
+    fira-code # plain family, matches wezterm.lua's font name exactly
+    nerd-fonts.fira-code # patched variant, for prompt/glyph icons
   ];
 
   # --- session / environment ---
@@ -65,14 +69,22 @@
     envExtra = ''
       export PATH=$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH
       export PATH=$HOME/bin:/usr/local/bin:$HOME/.local/bin:$PATH
-      export EDITOR=vim
+      export EDITOR="code --wait"
+
+      # Default `ls` colors are low-contrast on a dark background (dim blue
+      # directories, dark green executables). Override just those with
+      # explicit 256-color codes on top of the system defaults — fixed
+      # xterm-256 palette entries, so unlike the base 16 ANSI colors these
+      # don't shift when the terminal's color scheme changes.
+      eval "$(dircolors -b)"
+      export LS_COLORS="''${LS_COLORS}di=38;5;33:ex=38;5;208;1:ln=38;5;51:"
     '';
 
     initContent = lib.mkMerge [
       # keychain zstyle must be set before oh-my-zsh is sourced (order 550 < compinit 600).
       (lib.mkOrder 550 ''
         zstyle :omz:plugins:keychain agents     gpg,ssh
-        zstyle :omz:plugins:keychain identities github gitlab-is4s gitlab-aspn gitlab-antcenter gitlab-cps
+        zstyle :omz:plugins:keychain identities
       '')
       ''
         # cl: cd and ls combined
@@ -91,6 +103,25 @@
             rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
           fi
         }
+
+        # The "kolo" oh-my-zsh theme (sourced above) uses named ANSI colors
+        # (magenta/green/yellow/red), which map to whatever the terminal's
+        # active color scheme defines for those slots — low-contrast under
+        # some schemes. Override with fixed truecolor hex so the prompt
+        # stays legible regardless of theme changes.
+        zstyle ':vcs_info:*' stagedstr '%F{#9ece6a}●'
+        zstyle ':vcs_info:*' unstagedstr '%F{#e0af68}●'
+
+        theme_precmd () {
+          if [[ -z $(git ls-files --other --exclude-standard 2> /dev/null) ]]; then
+            zstyle ':vcs_info:git:*' formats ' [%b%c%u%B%F{#9ece6a}]'
+          else
+            zstyle ':vcs_info:git:*' formats ' [%b%c%u%B%F{#f7768e}●%F{#9ece6a}]'
+          fi
+          vcs_info
+        }
+
+        PROMPT='%B%F{#7dcfff}%c%B%F{#9ece6a}''${vcs_info_msg_0_}%B%F{#7dcfff} %{$reset_color%}%% '
       ''
     ];
 
@@ -105,13 +136,21 @@
 
     oh-my-zsh = {
       enable = true;
-      theme = "cloud";
+      theme = "gozilla";
       plugins = [
         "git"
         "history"
         "tmux"
         "gpg-agent"
         "keychain"
+        "aliases"
+        "alias-finder"
+        "copypath"
+        "copybuffer"
+        "copyfile"
+        "extract"
+        "universalarchive"
+        "direnv"
       ];
     };
   };
@@ -124,9 +163,22 @@
       user.name = "Tanner Koza";
       user.email = "kozatanner@gmail.com";
       init.defaultBranch = "main";
-      pull.rebase = false;
+      pull.rebase = true;
       push.autoSetupRemote = true;
-      core.editor = "vim";
+      core.editor = "code --wait";
+      core.pager = "delta";
+      interactive.diffFilter = "delta --color-only";
+      delta.navigate = true;
+      merge.conflictStyle = "diff3";
+      diff.colorMoved = "default";
+      difftool.prompt = false;
+      mergetool.prompt = false;
+      filter.lfs = {
+        clean = "git-lfs clean -- %f";
+        smudge = "git-lfs smudge -- %f";
+        process = "git-lfs filter-process";
+        required = true;
+      };
     };
     ignores = [
       ".DS_Store"
@@ -166,18 +218,12 @@
 
       # status bar at top
       set -g status-position top
+      set -g status-left-length 20
+
+      # show pane index + title on the pane border
+      set -g pane-border-format "#{pane_index} #{pane_title}"
+      set -g pane-border-status bottom
     '';
-  };
-
-  # --- vscode ---
-  # The Nix vscode package needs either a SUID sandbox or unprivileged user
-  # namespaces, neither available by default on stock Ubuntu, so it's run
-  # with --no-sandbox instead. (If this ever gives you trouble, apt-install
-  # it the same way as Brave/WezTerm — see ansible/roles/gui-apps.)
-
-  programs.vscode = {
-    enable = true;
-    package = pkgs.vscode.override { commandLineArgs = "--no-sandbox"; };
   };
 
   # --- wezterm ---

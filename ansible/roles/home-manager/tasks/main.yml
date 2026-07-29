@@ -1,20 +1,21 @@
 ---
-- name: Enable flakes + nix-command for the invoking user (belt-and-suspenders; Determinate already enables these globally)
+- name: Ensure ~/.config/nix exists
+  file:
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nix"
+    state: directory
+    mode: "0755"
+  become: false
+
+# Belt-and-suspenders — Determinate already enables these globally.
+- name: Enable flakes + nix-command for this user
   copy:
-    dest: "{{ ansible_env.HOME }}/.config/nix/nix.conf"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nix/nix.conf"
     content: |
       experimental-features = nix-command flakes
     mode: "0644"
   become: false
 
-- name: Ensure ~/.config/nix exists before writing nix.conf
-  file:
-    path: "{{ ansible_env.HOME }}/.config/nix"
-    state: directory
-    mode: "0755"
-  become: false
-
-- name: Apply home-manager configuration from the flake
+- name: Apply home-manager configuration
   shell: |
     export PATH="{{ nix_bin_dir }}:$PATH"
     nix run home-manager -- switch --flake "{{ repo_root }}/home#{{ hm_flake_target }}" -b backup
@@ -23,28 +24,28 @@
     chdir: "{{ repo_root }}/home"
   become: false
   register: hm_switch
-  changed_when: "'Activating' in hm_switch.stdout"
+  changed_when: "'Activating' in hm_switch.stderr"
 
 # home-manager's zsh only exists in ~/.nix-profile after the switch above,
 # so registering it as the login shell has to happen here rather than as a
 # home-manager activation hook (which would need passwordless root).
 
-- name: Check for a Nix-managed zsh in this user's profile
+- name: Check for Nix-managed zsh
   stat:
-    path: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
+    path: "{{ ansible_facts['env']['HOME'] }}/.nix-profile/bin/zsh"
   register: hm_zsh
 
-- name: Register Nix-managed zsh in /etc/shells
+- name: Register Nix zsh in /etc/shells
   lineinfile:
     path: /etc/shells
-    line: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
+    line: "{{ ansible_facts['env']['HOME'] }}/.nix-profile/bin/zsh"
     create: true
   become: true
   when: hm_zsh.stat.exists
 
-- name: Set Nix-managed zsh as the login shell
+- name: Set Nix zsh as login shell
   user:
-    name: "{{ ansible_user_id }}"
-    shell: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
+    name: "{{ ansible_facts['user_id'] }}"
+    shell: "{{ ansible_facts['env']['HOME'] }}/.nix-profile/bin/zsh"
   become: true
   when: hm_zsh.stat.exists

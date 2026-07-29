@@ -1,0 +1,28 @@
+---
+# GNOME Shell extensions are JS plugins compiled against a specific
+# shell-version. Ubuntu's shell version is fixed by its LTS release, not
+# by whatever nixpkgs branch home/flake.nix happens to pin, so installing
+# these via Nix (gnomeExtensions.*) silently drifts out of sync and breaks
+# at runtime ("OUT OF DATE" / crashes on a missing GJS API). Installing
+# from extensions.gnome.org's own versioned endpoint, matched to the real
+# `gnome-shell --version`, is what the extensions.gnome.org site itself
+# does when you click Install — so it's guaranteed compatible.
+#
+# dconf.settings for these extensions stays in home/gnome.nix — that's
+# just data, no shell-version coupling, never was the problem.
+
+- name: Get installed GNOME Shell major version
+  shell: gnome-shell --version | grep -oE '[0-9]+' | head -1
+  register: gnome_shell_version
+  changed_when: false
+
+- name: Install GNOME Shell extensions matched to shell {{ gnome_shell_version.stdout }}
+  include_tasks: install-extension.yml
+  loop:
+    - dash-to-dock@micxgx.gmail.com
+    - arcmenu@arcmenu.com
+    - user-theme@gnome-shell-extensions.gcampax.github.com
+    - Vitals@CoreCoding.com
+    - paperwm@paperwm.github.com
+  loop_control:
+    loop_var: extension_uuid

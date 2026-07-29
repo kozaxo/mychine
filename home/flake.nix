@@ -11,13 +11,13 @@
 
   outputs = { self, nixpkgs, home-manager, ... }:
     let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
-
-      mkHost = { username, homeDirectory ? "/home/${username}" }:
+      mkHost = { username, system, homeDirectory ? "/home/${username}" }:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        in
         home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           modules = [
@@ -30,12 +30,14 @@
         };
     in
     {
-      # One entry per Linux username this gets provisioned under.
-      # ansible/site.yml passes `-e hm_flake_target=<ansible_user_id>` by
-      # default, so add a key here for every user account you provision.
+      # One entry per Linux username this gets provisioned under. `system`
+      # must match that machine's actual architecture (e.g. "aarch64-linux"
+      # for a Parallels VM on Apple Silicon). ansible/site.yml passes
+      # `-e hm_flake_target=<ansible_user_id>` by default, so add a key here
+      # for every user account you provision.
       homeConfigurations = {
-        kozaxo = mkHost { username = "kozaxo"; };
-        parallels = mkHost { username = "parallels"; };
+        kozaxo = mkHost { username = "kozaxo"; system = "aarch64-linux"; };
+        parallels = mkHost { username = "parallels"; system = "aarch64-linux"; };
       };
     };
 }

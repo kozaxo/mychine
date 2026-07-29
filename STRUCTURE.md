@@ -9,12 +9,13 @@ ansible/
   roles/
     base/                 # apt update + build deps
     nix/                  # installs Nix (Determinate installer)
-    gui-apps/             # Brave + WezTerm via apt, sandbox fix
+    gui-apps/             # Brave + WezTerm + VS Code via apt
+    gnome-extensions/     # GNOME Shell extensions from extensions.gnome.org
     home-manager/         # runs `home-manager switch` from the flake
 home/
   flake.nix               # home-manager flake, one entry per username
-  home.nix                # zsh, git, tmux, direnv, vscode, packages
-  gnome.nix               # GNOME dconf settings, extensions, kanagawa theme
+  home.nix                # zsh, git, tmux, direnv, packages
+  gnome.nix               # GNOME dconf settings + Everforest theme
 dotfiles/
   wezterm.lua             # symlinked to ~/.config/wezterm/wezterm.lua
 ```
@@ -54,6 +55,13 @@ what a hardcoded default used to do. Add a new entry for every account
 you provision, or pass `-e hm_flake_target=<key>` to target one
 explicitly.
 
+Each entry also declares its own `system` (e.g. `"aarch64-linux"` for a
+Parallels VM on Apple Silicon vs. `"x86_64-linux"` for a bare-metal box),
+rather than one `system` shared across every `homeConfigurations` entry.
+This keeps the flake pure — no `--impure`, no reading the real machine's
+architecture at eval time — at the cost of having to set `system`
+explicitly for every new machine, same as `username`.
+
 ## Ported from kozaxo/nix
 
 This repo started as a port of [kozaxo/nix](https://github.com/kozaxo/nix)
@@ -67,8 +75,8 @@ port to fit the ansible-owns-root / home-manager-owns-user split:
   They're now plain Ansible tasks (`ansible/roles/home-manager` and
   `ansible/roles/gui-apps` respectively) — same effect, no sudo-from-hm.
 - WezTerm's keybindings config carried over as-is into `dotfiles/wezterm.lua`.
-- VS Code is still Nix-managed with `--no-sandbox` (as before). If that
-  ever gives you grief, apt-install it the same way as Brave/WezTerm.
+- VS Code was originally Nix-managed with `--no-sandbox`, but now installs
+  via apt (`ansible/roles/gui-apps`) the same way as Brave/WezTerm.
 
 ## Avoiding home-manager conflicts
 
@@ -95,28 +103,54 @@ definition in a single file, or wrap an intentional override in
 **3. Two installers manage the same tool.** This is what actually broke
 the old repo — WezTerm and Brave as Nix packages that couldn't
 sandbox/render correctly on stock Ubuntu. The rule going forward: every
-GUI/system tool has exactly one installer, apt (Brave, WezTerm) or Nix
-(everything in `home.packages`), never both. VS Code is the one
-intentional exception (Nix + `--no-sandbox`); if it ever misbehaves, move
-it to apt the same way rather than running both.
+GUI/system tool has exactly one installer, apt (Brave, WezTerm, VS Code)
+or Nix (everything in `home.packages`), never both.
+
+This also bites you *inside* home-manager itself: don't add
+`home-manager` to `home.packages`. `programs.home-manager.enable = true`
+already installs it into the profile, so listing it again in
+`home.packages` pulls in a second copy from a different evaluation, and
+`pkgs.buildEnv` fails with "two given paths contain a conflicting
+subpath" over `share/zsh/site-functions/_home-manager` when the two
+copies don't byte-for-byte match.
 
 ## GNOME extensions
 
-`gnome.nix`'s `dconf.settings` is the single source of truth — don't
+Extensions are **not** installed via Nix (`gnomeExtensions.*`) — they're
+JS plugins compiled against a specific GNOME shell-version, and Ubuntu's
+shell version is fixed by its LTS release, not by whatever nixpkgs branch
+`home/flake.nix` happens to be on at the time. Pinning nixpkgs to match
+was tried and rejected: it drags the *entire* home-manager module API
+back to that pin's era too (e.g. `programs.git.settings` didn't exist
+yet on the `release-24.05` branch), trading one class of breakage for
+another. Instead, `ansible/roles/gnome-extensions` downloads each
+extension straight from `extensions.gnome.org`'s versioned endpoint —
+`.../download-extension/<uuid>.shell-extension.zip?shell_version=<X>` —
+matched to the real, live `gnome-shell --version` on that machine. This
+is the same mechanism the extensions.gnome.org website itself uses when
+you click Install, so it's guaranteed compatible; nixpkgs stays on
+`nixos-unstable` with no version coupling to worry about.
+
+Extensions land in `~/.local/share/gnome-shell/extensions/<uuid>/`
+(standard, non-Nix XDG data dir) — nothing to do with
+`~/.nix-profile/share`. `gnome.nix`'s `dconf.settings` remains the single
+source of truth for extension *configuration* (that part is just data,
+never had a version-coupling problem) and for the `enabled-extensions`
+list, which is what actually turns an installed extension on — don't
 hand-toggle extensions in the GNOME Extensions app, since the next
-`switch` silently reverts any manual change. A newly-enabled extension
-also won't load until gnome-shell restarts (log out/in, or Alt+F2 → `r`
-on X11); if it's still missing after that, check
-`systemctl --user show-environment | grep XDG_DATA_DIRS` includes
-`$HOME/.nix-profile/share` — that's what lets gnome-shell find
-Nix-installed extension schemas on non-NixOS.
+`home-manager switch` silently reverts any manual change there. A
+newly-installed or newly-enabled extension also won't load until
+gnome-shell restarts (log out/in, or Alt+F2 → `r` on X11) — check
+`gnome-extensions info <uuid>` for `State: ACTIVE` after that; `ERROR`
+or `OUT OF DATE` there means the extensions.gnome.org build genuinely
+isn't compatible with this shell version yet, not a config problem.
 
 ## Pin your inputs
 
 Run `nix flake lock` inside `home/` once and commit the resulting
 `flake.lock`. Without it, provisioning a second machine months from now
-pulls whatever `nixpkgs-unstable`/`home-manager` HEAD happens to be that
-day, which can silently diverge from your first machine's config.
+pulls whatever nixpkgs/home-manager HEAD happens to be that day, which can
+silently diverge from your first machine's config.
 
 ## Things to customize before first run
 
@@ -127,3 +161,7 @@ day, which can silently diverge from your first machine's config.
   way (keyring → source → apt install), and add their config files under
   `dotfiles/` + a `home.file` entry in `home.nix` if you want them
   version-controlled too.
+- Adding a new GNOME Shell extension: add its UUID to the `loop` in
+  `ansible/roles/gnome-extensions/tasks/main.yml` and its settings +
+  UUID to `dconf.settings."org/gnome/shell".enabled-extensions` in
+  `gnome.nix` — not to `home.packages` (see "GNOME extensions" above).
