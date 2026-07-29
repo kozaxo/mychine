@@ -15,7 +15,7 @@ ansible/
 home/
   flake.nix               # home-manager flake, one entry per username
   home.nix                # zsh, git, tmux, direnv, packages
-  gnome.nix               # GNOME dconf settings + kanagawa theme
+  gnome.nix               # GNOME dconf settings + Everforest theme
 dotfiles/
   wezterm.lua             # symlinked to ~/.config/wezterm/wezterm.lua
 ```

@@ -3,39 +3,41 @@
 # To refresh from a live system: dconf dump / > ~/dconf-backup.txt
 let
 
-  # --- kanagawa-gtk-theme ---
+  # --- everforest-gtk-theme ---
   # Not in nixpkgs, built from source using the upstream install.sh + sassc.
+  # -c dark --tweaks medium produces the "Everforest-Dark-Medium" folder
+  # name (see install.sh's THEME_DIR construction) — matches the dconf
+  # gtk-theme/user-theme settings below.
   # First build will fail printing the correct hash; paste it in and rebuild.
-  kanagawa-gtk-theme = pkgs.stdenv.mkDerivation {
-    pname = "kanagawa-gtk-theme";
+  everforest-gtk-theme = pkgs.stdenv.mkDerivation {
+    pname = "everforest-gtk-theme";
     version = "unstable";
     src = pkgs.fetchFromGitHub {
       owner = "Fausto-Korpsvart";
-      repo = "Kanagawa-GKT-Theme";
-      rev = "main";
-      hash = "sha256-UdMoMx2DoovcxSp/zBZ3PRv/Qpj+prd0uPm1gmdak2E=";
+      repo = "Everforest-GTK-Theme";
+      rev = "master";
+      hash = pkgs.lib.fakeHash;
     };
     nativeBuildInputs = [ pkgs.sassc pkgs.gtk-engine-murrine ];
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/themes
-      # Install only the dark variant — matches dconf gtk-theme setting.
-      bash themes/install.sh -d $out/share/themes -c dark
+      bash themes/install.sh -d $out/share/themes -c dark --tweaks medium
       runHook postInstall
     '';
   };
 
-  # --- kanagawa-icon-theme ---
-  # Same upstream repo as the GTK theme, icons/ subfolder.
-  kanagawa-icon-theme = pkgs.stdenv.mkDerivation {
-    pname = "kanagawa-icon-theme";
+  # --- everforest-icon-theme ---
+  # Same upstream repo as the GTK theme; icons/ ships pre-built, no build step.
+  everforest-icon-theme = pkgs.stdenv.mkDerivation {
+    pname = "everforest-icon-theme";
     version = "unstable";
-    src = kanagawa-gtk-theme.src; # reuse the same fetch, no extra download
+    src = everforest-gtk-theme.src; # reuse the same fetch, no extra download
     nativeBuildInputs = [ pkgs.hicolor-icon-theme ];
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/icons
-      cp -r icons/Kanagawa* $out/share/icons/
+      cp -r icons/Everforest-Dark $out/share/icons/
       runHook postInstall
     '';
   };
@@ -59,8 +61,8 @@ in
     yaru-theme # provides the Yaru cursor
 
     # custom themes (built above)
-    kanagawa-gtk-theme
-    kanagawa-icon-theme
+    everforest-gtk-theme
+    everforest-icon-theme
   ];
 
   # --- dconf ---
@@ -74,8 +76,8 @@ in
       clock-show-seconds = true;
       clock-show-weekday = false;
       font-hinting = "slight";
-      gtk-theme = "kanagawa-dark-Dark";
-      icon-theme = "Kanagawa";
+      gtk-theme = "Everforest-Dark-Medium";
+      icon-theme = "Everforest-Dark";
       cursor-theme = "Yaru";
     };
 
@@ -194,7 +196,7 @@ in
     # --- user-theme extension ---
 
     "org/gnome/shell/extensions/user-theme" = {
-      name = "kanagawa-dark-Dark";
+      name = "Everforest-Dark-Medium";
     };
 
     # --- dash-to-dock ---
@@ -211,16 +213,16 @@ in
 
     "org/gnome/shell/extensions/arcmenu" = {
       enable-menu-hotkey = true;
-      menu-background-color = "rgb(15,1,37)";
-      menu-border-color = "rgb(63,62,64)";
+      menu-background-color = "rgb(45,53,59)";
+      menu-border-color = "rgb(71,82,88)";
       menu-button-appearance = "Icon";
-      menu-foreground-color = "rgb(211,218,227)";
-      menu-item-active-bg-color = "rgba(228,228,226,0.15)";
+      menu-foreground-color = "rgb(211,198,170)";
+      menu-item-active-bg-color = "rgba(167,192,128,0.15)";
       menu-item-active-fg-color = "rgb(255,255,255)";
-      menu-item-hover-bg-color = "rgba(238,238,236,0.08)";
+      menu-item-hover-bg-color = "rgba(131,192,146,0.08)";
       menu-item-hover-fg-color = "rgb(255,255,255)";
       menu-layout = "Plasma";
-      menu-separator-color = "rgb(63,62,64)";
+      menu-separator-color = "rgb(71,82,88)";
       override-menu-theme = true;
       position-in-panel = "Center";
       search-entry-border-radius = lib.hm.gvariant.mkTuple [

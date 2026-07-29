@@ -9,7 +9,7 @@ end
 config.font = wezterm.font("Fira Code", { weight = "Regular" })
 config.font_size = 12.0
 
-config.color_scheme = 'Kanagawa (Gogh)'
+config.color_scheme = 'Everforest Dark Medium (Gogh)'
 
 config.window_background_opacity = 0.65
 config.enable_tab_bar = true
