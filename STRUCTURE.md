@@ -13,7 +13,7 @@ ansible/
     home-manager/         # runs `home-manager switch` from the flake
 home/
   flake.nix               # home-manager flake, one entry per username
-  home.nix                # zsh, git, tmux, direnv, vscode, packages
+  home.nix                # zsh, git, tmux, direnv, packages
   gnome.nix               # GNOME dconf settings, extensions, kanagawa theme
 dotfiles/
   wezterm.lua             # symlinked to ~/.config/wezterm/wezterm.lua
@@ -67,8 +67,8 @@ port to fit the ansible-owns-root / home-manager-owns-user split:
   They're now plain Ansible tasks (`ansible/roles/home-manager` and
   `ansible/roles/gui-apps` respectively) — same effect, no sudo-from-hm.
 - WezTerm's keybindings config carried over as-is into `dotfiles/wezterm.lua`.
-- VS Code is still Nix-managed with `--no-sandbox` (as before). If that
-  ever gives you grief, apt-install it the same way as Brave/WezTerm.
+- VS Code was originally Nix-managed with `--no-sandbox`, but now installs
+  via apt (`ansible/roles/gui-apps`) the same way as Brave/WezTerm.
 
 ## Avoiding home-manager conflicts
 
@@ -95,10 +95,8 @@ definition in a single file, or wrap an intentional override in
 **3. Two installers manage the same tool.** This is what actually broke
 the old repo — WezTerm and Brave as Nix packages that couldn't
 sandbox/render correctly on stock Ubuntu. The rule going forward: every
-GUI/system tool has exactly one installer, apt (Brave, WezTerm) or Nix
-(everything in `home.packages`), never both. VS Code is the one
-intentional exception (Nix + `--no-sandbox`); if it ever misbehaves, move
-it to apt the same way rather than running both.
+GUI/system tool has exactly one installer, apt (Brave, WezTerm, VS Code)
+or Nix (everything in `home.packages`), never both.
 
 ## GNOME extensions
 

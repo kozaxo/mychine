@@ -4,8 +4,8 @@ One command to take a fresh Ubuntu box to a fully configured workstation,
 split into two layers:
 
 - **Ansible** (`ansible/`) — anything that needs root or touches the OS:
-  installing Nix, apt-installing Brave and WezTerm, fixing Brave's
-  `chrome-sandbox` setuid bit, and triggering `home-manager switch`.
+  installing Nix, apt-installing Brave/WezTerm/VS Code, and triggering
+  `home-manager switch`.
 - **home-manager** (`home/`) — dotfiles and CLI/TUI tools, fully
   declarative and versioned. See `home/home.nix`.
 

@@ -169,17 +169,6 @@
     '';
   };
 
-  # --- vscode ---
-  # The Nix vscode package needs either a SUID sandbox or unprivileged user
-  # namespaces, neither available by default on stock Ubuntu, so it's run
-  # with --no-sandbox instead. (If this ever gives you trouble, apt-install
-  # it the same way as Brave/WezTerm — see ansible/roles/gui-apps.)
-
-  programs.vscode = {
-    enable = true;
-    package = pkgs.vscode.override { commandLineArgs = "--no-sandbox"; };
-  };
-
   # --- wezterm ---
   # wezterm itself is apt-installed (ansible/roles/gui-apps); this just
   # symlinks its config in from the repo so it's versioned.
