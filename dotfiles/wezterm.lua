@@ -15,6 +15,7 @@ config.font_size = 12.0
 config.color_scheme = 'Everforest Dark Medium (Gogh)'
 
 config.window_background_opacity = 0.65
+config.window_decorations = "RESIZE" -- drop the native title bar, keep resizable edges
 config.enable_tab_bar = true
 config.use_fancy_tab_bar = false
 config.hide_tab_bar_if_only_one_tab = true
