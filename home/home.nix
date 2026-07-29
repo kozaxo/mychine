@@ -107,7 +107,7 @@
 
     oh-my-zsh = {
       enable = true;
-      theme = "kolo";
+      theme = "gozilla";
       plugins = [
         "git"
         "history"
