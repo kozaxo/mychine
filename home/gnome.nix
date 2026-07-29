@@ -1,0 +1,293 @@
+{ pkgs, lib, ... }:
+# GNOME desktop configuration.
+# To refresh from a live system: dconf dump / > ~/dconf-backup.txt
+let
+
+  # --- kanagawa-gtk-theme ---
+  # Not in nixpkgs, built from source using the upstream install.sh + sassc.
+  # First build will fail printing the correct hash; paste it in and rebuild.
+  kanagawa-gtk-theme = pkgs.stdenv.mkDerivation {
+    pname = "kanagawa-gtk-theme";
+    version = "unstable";
+    src = pkgs.fetchFromGitHub {
+      owner = "Fausto-Korpsvart";
+      repo = "Kanagawa-GKT-Theme";
+      rev = "main";
+      hash = "sha256-UdMoMx2DoovcxSp/zBZ3PRv/Qpj+prd0uPm1gmdak2E=";
+    };
+    nativeBuildInputs = [ pkgs.sassc pkgs.gtk-engine-murrine ];
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/share/themes
+      # Install only the dark variant — matches dconf gtk-theme setting.
+      bash themes/install.sh -d $out/share/themes -c dark
+      runHook postInstall
+    '';
+  };
+
+  # --- kanagawa-icon-theme ---
+  # Same upstream repo as the GTK theme, icons/ subfolder.
+  kanagawa-icon-theme = pkgs.stdenv.mkDerivation {
+    pname = "kanagawa-icon-theme";
+    version = "unstable";
+    src = kanagawa-gtk-theme.src; # reuse the same fetch, no extra download
+    nativeBuildInputs = [ pkgs.hicolor-icon-theme ];
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/share/icons
+      cp -r icons/Kanagawa* $out/share/icons/
+      runHook postInstall
+    '';
+  };
+
+in
+{
+  # --- packages ---
+
+  home.packages = with pkgs; [
+    # extensions
+    gnomeExtensions.dash-to-dock
+    gnomeExtensions.arc-menu
+    gnomeExtensions.user-themes
+    gnomeExtensions.vitals
+    gnomeExtensions.paperwm
+
+    # theme dependencies & tooling
+    gtk-engine-murrine # required by many GTK2/3 themes
+    gnome-tweaks
+    yaru-theme # provides the Yaru cursor
+
+    # custom themes (built above)
+    kanagawa-gtk-theme
+    kanagawa-icon-theme
+  ];
+
+  # --- dconf ---
+
+  dconf.settings = {
+
+    # --- interface ---
+
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+      clock-show-seconds = true;
+      clock-show-weekday = false;
+      font-hinting = "slight";
+      gtk-theme = "Kanagawa-Dark";
+      icon-theme = "Kanagawa";
+      cursor-theme = "Yaru";
+    };
+
+    # --- session ---
+
+    "org/gnome/desktop/session" = {
+      idle-delay = lib.hm.gvariant.mkUint32 0;
+    };
+
+    # --- input ---
+
+    "org/gnome/desktop/input-sources" = {
+      per-window = false;
+      sources = [ (lib.hm.gvariant.mkTuple [ "xkb" "us" ]) ];
+      xkb-options = [ "compose:caps" ];
+    };
+
+    # --- power ---
+
+    "org/gnome/settings-daemon/plugins/power" = {
+      sleep-inactive-ac-timeout = 3600;
+      sleep-inactive-ac-type = "nothing";
+    };
+
+    # --- workspaces ---
+
+    "org/gnome/desktop/wm/preferences" = {
+      workspace-names = [ "home" ];
+    };
+
+    # --- mutter ---
+    # PaperWM manages tiling so edge-tiling is off.
+
+    "org/gnome/mutter" = {
+      attach-modal-dialogs = false;
+      edge-tiling = false;
+      overlay-key = "Super_L";
+      workspaces-only-on-primary = false;
+    };
+
+    "org/gnome/mutter/keybindings" = {
+      toggle-tiled-left = [ "<Super>Left" ];
+      toggle-tiled-right = [ "<Super>Right" ];
+    };
+
+    "org/gnome/mutter/wayland/keybindings" = {
+      restore-shortcuts = [ ];
+    };
+
+    # --- WM keybindings ---
+    # Cleared because PaperWM overrides them all.
+
+    "org/gnome/desktop/wm/keybindings" = {
+      maximize = [ ];
+      minimize = [ ];
+      move-to-monitor-down = [ ];
+      move-to-monitor-left = [ ];
+      move-to-monitor-right = [ ];
+      move-to-monitor-up = [ ];
+      switch-applications = [ ];
+      switch-applications-backward = [ ];
+      switch-group = [ ];
+      switch-group-backward = [ ];
+      switch-to-workspace-1 = [ ];
+      switch-to-workspace-last = [ ];
+      switch-to-workspace-left = [ ];
+      switch-to-workspace-right = [ ];
+      unmaximize = [ ];
+    };
+
+    # --- shell keybindings ---
+    # Cleared — PaperWM takes over overview navigation.
+
+    "org/gnome/shell/keybindings" = {
+      focus-active-notification = [ ];
+      shift-overview-down = [ ];
+      shift-overview-up = [ ];
+    };
+
+    # --- media keys ---
+
+    "org/gnome/settings-daemon/plugins/media-keys" = {
+      screensaver = [ ];
+      terminal = [ ];
+      custom-keybindings = [
+        "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+      ];
+    };
+
+    # Ctrl+Alt+T → WezTerm (apt-installed, so plain `wezterm` on PATH is correct)
+    "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
+      binding = "<Primary><Alt>t";
+      command = "wezterm";
+      name = "WezTerm";
+    };
+
+    # --- shell ---
+
+    "org/gnome/shell" = {
+      disable-user-extensions = false;
+      disabled-extensions = [ "ding@rastersoft.com" "ubuntu-dock@ubuntu.com" ];
+      enabled-extensions = [
+        "dash-to-dock@micxgx.gmail.com"
+        "arcmenu@arcmenu.com"
+        "user-theme@gnome-shell-extensions.gcampax.github.com"
+        "Vitals@CoreCoding.com"
+        "paperwm@paperwm.github.com"
+      ];
+      favorite-apps = [
+        "org.gnome.Nautilus.desktop"
+        "code.desktop"
+        "brave-browser.desktop"
+      ];
+    };
+
+    # --- user-theme extension ---
+
+    "org/gnome/shell/extensions/user-theme" = {
+      name = "Kanagawa-Dark";
+    };
+
+    # --- dash-to-dock ---
+
+    "org/gnome/shell/extensions/dash-to-dock" = {
+      background-opacity = 0.8;
+      dash-max-icon-size = 48;
+      dock-position = "RIGHT";
+      height-fraction = 0.9;
+      preferred-monitor = -2;
+    };
+
+    # --- arcmenu ---
+
+    "org/gnome/shell/extensions/arcmenu" = {
+      enable-menu-hotkey = true;
+      menu-background-color = "rgb(15,1,37)";
+      menu-border-color = "rgb(63,62,64)";
+      menu-button-appearance = "Icon";
+      menu-foreground-color = "rgb(211,218,227)";
+      menu-item-active-bg-color = "rgba(228,228,226,0.15)";
+      menu-item-active-fg-color = "rgb(255,255,255)";
+      menu-item-hover-bg-color = "rgba(238,238,236,0.08)";
+      menu-item-hover-fg-color = "rgb(255,255,255)";
+      menu-layout = "Plasma";
+      menu-separator-color = "rgb(63,62,64)";
+      override-menu-theme = true;
+      position-in-panel = "Center";
+      search-entry-border-radius = lib.hm.gvariant.mkTuple [
+        true
+        (lib.hm.gvariant.mkInt32 25)
+      ];
+      show-activities-button = false;
+    };
+
+    # --- vitals ---
+
+    "org/gnome/shell/extensions/vitals" = {
+      alphabetize = false;
+      fixed-widths = true;
+      hide-icons = false;
+      hot-sensors = [
+        "_memory_usage_"
+        "__network-rx_max__"
+        "_processor_usage_"
+        "_storage_free_"
+      ];
+      show-battery = false;
+      show-storage = true;
+      storage-measurement = 0;
+      storage-path = "/";
+      use-higher-precision = false;
+    };
+
+    # --- paperwm ---
+
+    "org/gnome/shell/extensions/paperwm" = {
+      horizontal-margin = 30;
+      vertical-margin = 30;
+      vertical-margin-bottom = 30;
+      window-gap = 30;
+      show-window-position-bar = false;
+      use-default-background = true;
+    };
+
+    "org/gnome/shell/extensions/paperwm/keybindings" = {
+      move-down = [ "<Control><Super>Down" ];
+      move-down-workspace = [ "<Control><Super>Page_Down" "<Shift><Super>j" ];
+      move-left = [
+        "<Control><Super>comma"
+        "<Shift><Super>comma"
+        "<Control><Super>Left"
+        "<Shift><Super>h"
+      ];
+      move-right = [
+        "<Control><Super>period"
+        "<Shift><Super>period"
+        "<Control><Super>Right"
+        "<Shift><Super>l"
+      ];
+      move-up = [ "<Control><Super>Up" ];
+      move-up-workspace = [ "<Control><Super>Page_Up" "<Shift><Super>k" ];
+      switch-down-workspace = [ "<Super>j" ];
+      switch-left = [ "<Super>h" ];
+      switch-right = [ "<Super>l" ];
+      switch-up-workspace = [ "<Super>k" ];
+    };
+
+    # --- nautilus ---
+
+    "org/gnome/nautilus/preferences" = {
+      default-folder-viewer = "list-view";
+      search-view = "list-view";
+    };
+
+  };
+}

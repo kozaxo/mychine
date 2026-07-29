@@ -1,0 +1,25 @@
+---
+# Provisions a fresh Ubuntu box: system packages -> Nix -> apt-installed GUI
+# apps (Brave, WezTerm) -> home-manager (dotfiles + CLI tools).
+#
+# Usage:
+#   cd mychine/ansible
+#   ansible-playbook site.yml [--ask-become-pass]
+#
+# hm_flake_target defaults to the invoking user's name and must match a key
+# in mychine/home/flake.nix's `homeConfigurations`. To target a
+# different one, pass:
+#   ansible-playbook site.yml -e hm_flake_target=someoneelse
+
+- name: Provision Ubuntu workstation
+  hosts: local
+  become: false
+  vars:
+    repo_root: "{{ playbook_dir }}/.."
+    nix_bin_dir: /nix/var/nix/profiles/default/bin
+    hm_flake_target: "{{ ansible_user_id }}"
+  roles:
+    - base
+    - nix
+    - gui-apps
+    - home-manager

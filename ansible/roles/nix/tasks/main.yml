@@ -1,0 +1,26 @@
+---
+# Determinate Systems installer: multi-user Nix daemon, flakes + nix-command
+# enabled by default, and a clean `/nix/nix-installer uninstall` if you ever
+# need to back it out. This is the current recommended installer for
+# non-NixOS Linux.
+
+- name: Check if Nix is already installed
+  stat:
+    path: /nix/var/nix/profiles/default/bin/nix
+  register: nix_installed
+
+- name: Install Nix via the Determinate Systems installer
+  shell: >
+    curl --proto '=https' --tlsv1.2 -sSf -L
+    https://install.determinate.systems/nix
+    | sh -s -- install --no-confirm
+  args:
+    executable: /bin/bash
+  become: true
+  when: not nix_installed.stat.exists
+
+- name: Wait for the nix-daemon socket to come up
+  wait_for:
+    path: /nix/var/nix/daemon-socket/socket
+    timeout: 30
+  when: not nix_installed.stat.exists
