@@ -161,7 +161,7 @@
       user.name = "Tanner Koza";
       user.email = "kozatanner@gmail.com";
       init.defaultBranch = "main";
-      pull.rebase = false;
+      pull.rebase = true;
       push.autoSetupRemote = true;
       core.editor = "code --wait";
       core.pager = "delta";
