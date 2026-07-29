@@ -9,12 +9,13 @@ ansible/
   roles/
     base/                 # apt update + build deps
     nix/                  # installs Nix (Determinate installer)
-    gui-apps/             # Brave + WezTerm via apt, sandbox fix
+    gui-apps/             # Brave + WezTerm + VS Code via apt
+    gnome-extensions/     # GNOME Shell extensions from extensions.gnome.org
     home-manager/         # runs `home-manager switch` from the flake
 home/
   flake.nix               # home-manager flake, one entry per username
   home.nix                # zsh, git, tmux, direnv, packages
-  gnome.nix               # GNOME dconf settings, extensions, kanagawa theme
+  gnome.nix               # GNOME dconf settings + kanagawa theme
 dotfiles/
   wezterm.lua             # symlinked to ~/.config/wezterm/wezterm.lua
 ```
@@ -115,14 +116,34 @@ copies don't byte-for-byte match.
 
 ## GNOME extensions
 
-`gnome.nix`'s `dconf.settings` is the single source of truth — don't
+Extensions are **not** installed via Nix (`gnomeExtensions.*`) — they're
+JS plugins compiled against a specific GNOME shell-version, and Ubuntu's
+shell version is fixed by its LTS release, not by whatever nixpkgs branch
+`home/flake.nix` happens to be on at the time. Pinning nixpkgs to match
+was tried and rejected: it drags the *entire* home-manager module API
+back to that pin's era too (e.g. `programs.git.settings` didn't exist
+yet on the `release-24.05` branch), trading one class of breakage for
+another. Instead, `ansible/roles/gnome-extensions` downloads each
+extension straight from `extensions.gnome.org`'s versioned endpoint —
+`.../download-extension/<uuid>.shell-extension.zip?shell_version=<X>` —
+matched to the real, live `gnome-shell --version` on that machine. This
+is the same mechanism the extensions.gnome.org website itself uses when
+you click Install, so it's guaranteed compatible; nixpkgs stays on
+`nixos-unstable` with no version coupling to worry about.
+
+Extensions land in `~/.local/share/gnome-shell/extensions/<uuid>/`
+(standard, non-Nix XDG data dir) — nothing to do with
+`~/.nix-profile/share`. `gnome.nix`'s `dconf.settings` remains the single
+source of truth for extension *configuration* (that part is just data,
+never had a version-coupling problem) and for the `enabled-extensions`
+list, which is what actually turns an installed extension on — don't
 hand-toggle extensions in the GNOME Extensions app, since the next
-`switch` silently reverts any manual change. A newly-enabled extension
-also won't load until gnome-shell restarts (log out/in, or Alt+F2 → `r`
-on X11); if it's still missing after that, check
-`systemctl --user show-environment | grep XDG_DATA_DIRS` includes
-`$HOME/.nix-profile/share` — that's what lets gnome-shell find
-Nix-installed extension schemas on non-NixOS.
+`home-manager switch` silently reverts any manual change there. A
+newly-installed or newly-enabled extension also won't load until
+gnome-shell restarts (log out/in, or Alt+F2 → `r` on X11) — check
+`gnome-extensions info <uuid>` for `State: ACTIVE` after that; `ERROR`
+or `OUT OF DATE` there means the extensions.gnome.org build genuinely
+isn't compatible with this shell version yet, not a config problem.
 
 ## Pin your inputs
 
@@ -130,26 +151,6 @@ Run `nix flake lock` inside `home/` once and commit the resulting
 `flake.lock`. Without it, provisioning a second machine months from now
 pulls whatever nixpkgs/home-manager HEAD happens to be that day, which can
 silently diverge from your first machine's config.
-
-`nixpkgs.url` is pinned to `nixos-24.05` rather than `nixos-unstable`
-specifically because `home.packages`' `gnomeExtensions.*` are compiled
-JS/metadata targeting a specific GNOME shell-version, and Ubuntu is not
-rolling — it ships one fixed GNOME major version per LTS release
-(24.04 → GNOME 46). Building extensions from `nixos-unstable` pulls
-whatever bleeding-edge GNOME (e.g. 50) unstable happens to target, which
-your actual `gnome-shell --version` won't match: extensions either
-declare a `shell-version` list that excludes yours (shows as "OUT OF
-DATE" in `gnome-extensions info`) or load and immediately crash on a
-GJS/GObject-introspection API your older shell doesn't have yet (shows
-as "ERROR"). `home-manager`'s input is pinned to the matching
-`release-24.05` branch for the same reason — its module API is meant to
-be used together with the nixpkgs release it ships alongside, not
-mixed with an arbitrary nixpkgs commit.
-
-If you ever provision on a newer Ubuntu LTS with a newer GNOME, bump
-both inputs to the matching `nixos-<version>` / `release-<version>`
-pair rather than jumping to `nixos-unstable`, and re-check
-`gnome-extensions info` for each extension in `gnome.nix` afterward.
 
 ## Things to customize before first run
 
@@ -160,3 +161,7 @@ pair rather than jumping to `nixos-unstable`, and re-check
   way (keyring → source → apt install), and add their config files under
   `dotfiles/` + a `home.file` entry in `home.nix` if you want them
   version-controlled too.
+- Adding a new GNOME Shell extension: add its UUID to the `loop` in
+  `ansible/roles/gnome-extensions/tasks/main.yml` and its settings +
+  UUID to `dconf.settings."org/gnome/shell".enabled-extensions` in
+  `gnome.nix` — not to `home.packages` (see "GNOME extensions" above).

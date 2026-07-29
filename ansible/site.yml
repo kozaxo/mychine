@@ -1,6 +1,7 @@
 ---
 # Provisions a fresh Ubuntu box: system packages -> Nix -> apt-installed GUI
-# apps (Brave, WezTerm) -> home-manager (dotfiles + CLI tools).
+# apps (Brave, WezTerm, VS Code) -> GNOME Shell extensions -> home-manager
+# (dotfiles + CLI tools).
 #
 # Usage:
 #   cd mychine/ansible
@@ -22,4 +23,5 @@
     - base
     - nix
     - gui-apps
+    - gnome-extensions
     - home-manager

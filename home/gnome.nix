@@ -44,14 +44,15 @@ in
 {
   # --- packages ---
 
-  home.packages = with pkgs; [
-    # extensions
-    gnomeExtensions.dash-to-dock
-    gnomeExtensions.arc-menu
-    gnomeExtensions.user-themes
-    gnomeExtensions.vitals
-    gnomeExtensions.paperwm
+  # GNOME Shell extensions are NOT here — they're installed by
+  # ansible/roles/gnome-extensions from extensions.gnome.org, matched to
+  # this machine's actual gnome-shell version. gnomeExtensions.* packages
+  # are compiled against whatever GNOME version this flake's nixpkgs
+  # happens to target, which silently drifts from Ubuntu's fixed
+  # per-LTS-release shell version and breaks at runtime (OUT OF DATE /
+  # ERROR — see STRUCTURE.md).
 
+  home.packages = with pkgs; [
     # theme dependencies & tooling
     gtk-engine-murrine # required by many GTK2/3 themes
     gnome-tweaks

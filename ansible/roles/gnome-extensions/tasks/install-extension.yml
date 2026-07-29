@@ -1,0 +1,16 @@
+---
+- name: Check if {{ extension_uuid }} is already installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.local/share/gnome-shell/extensions/{{ extension_uuid }}/metadata.json"
+  register: ext_installed
+
+- name: Download {{ extension_uuid }}
+  get_url:
+    url: "https://extensions.gnome.org/download-extension/{{ extension_uuid }}.shell-extension.zip?shell_version={{ gnome_shell_version.stdout }}"
+    dest: "/tmp/{{ extension_uuid }}.shell-extension.zip"
+    mode: "0644"
+  when: not ext_installed.stat.exists
+
+- name: Install {{ extension_uuid }}
+  command: gnome-extensions install --force "/tmp/{{ extension_uuid }}.shell-extension.zip"
+  when: not ext_installed.stat.exists
