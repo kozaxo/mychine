@@ -128,8 +128,28 @@ Nix-installed extension schemas on non-NixOS.
 
 Run `nix flake lock` inside `home/` once and commit the resulting
 `flake.lock`. Without it, provisioning a second machine months from now
-pulls whatever `nixpkgs-unstable`/`home-manager` HEAD happens to be that
-day, which can silently diverge from your first machine's config.
+pulls whatever nixpkgs/home-manager HEAD happens to be that day, which can
+silently diverge from your first machine's config.
+
+`nixpkgs.url` is pinned to `nixos-24.05` rather than `nixos-unstable`
+specifically because `home.packages`' `gnomeExtensions.*` are compiled
+JS/metadata targeting a specific GNOME shell-version, and Ubuntu is not
+rolling — it ships one fixed GNOME major version per LTS release
+(24.04 → GNOME 46). Building extensions from `nixos-unstable` pulls
+whatever bleeding-edge GNOME (e.g. 50) unstable happens to target, which
+your actual `gnome-shell --version` won't match: extensions either
+declare a `shell-version` list that excludes yours (shows as "OUT OF
+DATE" in `gnome-extensions info`) or load and immediately crash on a
+GJS/GObject-introspection API your older shell doesn't have yet (shows
+as "ERROR"). `home-manager`'s input is pinned to the matching
+`release-24.05` branch for the same reason — its module API is meant to
+be used together with the nixpkgs release it ships alongside, not
+mixed with an arbitrary nixpkgs commit.
+
+If you ever provision on a newer Ubuntu LTS with a newer GNOME, bump
+both inputs to the matching `nixos-<version>` / `release-<version>`
+pair rather than jumping to `nixos-unstable`, and re-check
+`gnome-extensions info` for each extension in `gnome.nix` afterward.
 
 ## Things to customize before first run
 

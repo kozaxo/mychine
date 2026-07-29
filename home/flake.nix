@@ -2,9 +2,13 @@
   description = "mychine home-manager configuration";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Pinned to the NixOS release that shipped GNOME 46, matching Ubuntu
+    # 24.04's system gnome-shell — gnomeExtensions.* built against a newer
+    # GNOME (e.g. nixos-unstable) fail to load: wrong declared shell-version,
+    # or JS/GObject-introspection APIs the running shell doesn't have yet.
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-24.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
