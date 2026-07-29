@@ -42,7 +42,7 @@ let
       owner = "bikass";
       repo = "kora";
       rev = "master";
-      hash = pkgs.lib.fakeHash;
+      hash = "sha256-jMVn6RlFSbPU4T6W+nJpuGZzMXOacQOFPbrNKhtzxzg=";
     };
     nativeBuildInputs = [ pkgs.hicolor-icon-theme ];
     installPhase = ''
