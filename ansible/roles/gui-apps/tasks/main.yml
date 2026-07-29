@@ -6,7 +6,7 @@
 
 # --- Add apt keyrings + sources (Brave, WezTerm, VS Code) -------------------
 
-- name: Add Brave browser apt keyring
+- name: Add Brave apt keyring
   get_url:
     url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
     dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
@@ -14,7 +14,8 @@
   become: true
   register: brave_keyring
 
-- name: Add Brave browser apt source (DEB822 .sources file)
+# DEB822 .sources file, not the older .list format.
+- name: Add Brave apt source
   get_url:
     url: https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
     dest: /etc/apt/sources.list.d/brave-browser-release.sources
@@ -56,7 +57,7 @@
   become: true
   register: vscode_source
 
-- name: Update apt cache after adding Brave/WezTerm/VS Code repos
+- name: Update apt cache for new repos
   apt:
     update_cache: true
   become: true
@@ -67,7 +68,7 @@
 
 # --- Install packages -------------------------------------------------------
 
-- name: Install Brave browser
+- name: Install Brave
   apt:
     name: brave-browser
     state: present
@@ -87,18 +88,18 @@
 
 # --- Make WezTerm the default terminal --------------------------------------
 
-- name: Check current default x-terminal-emulator alternative
+- name: Check default x-terminal-emulator
   command: update-alternatives --query x-terminal-emulator
   register: term_alt
   changed_when: false
   failed_when: false
 
-- name: Register WezTerm as an x-terminal-emulator alternative
+- name: Register WezTerm as x-terminal-emulator alternative
   command: update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/wezterm 100
   become: true
   when: "'/usr/bin/wezterm' not in term_alt.stdout"
 
-- name: Set WezTerm as the default x-terminal-emulator
+- name: Set WezTerm as default x-terminal-emulator
   command: update-alternatives --set x-terminal-emulator /usr/bin/wezterm
   become: true
   when: "'Value: /usr/bin/wezterm' not in term_alt.stdout"

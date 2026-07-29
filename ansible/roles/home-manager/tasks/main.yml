@@ -1,12 +1,13 @@
 ---
-- name: Ensure ~/.config/nix exists before writing nix.conf
+- name: Ensure ~/.config/nix exists
   file:
     path: "{{ ansible_env.HOME }}/.config/nix"
     state: directory
     mode: "0755"
   become: false
 
-- name: Enable flakes + nix-command for the invoking user (belt-and-suspenders; Determinate already enables these globally)
+# Belt-and-suspenders — Determinate already enables these globally.
+- name: Enable flakes + nix-command for this user
   copy:
     dest: "{{ ansible_env.HOME }}/.config/nix/nix.conf"
     content: |
@@ -14,7 +15,7 @@
     mode: "0644"
   become: false
 
-- name: Apply home-manager configuration from the flake
+- name: Apply home-manager configuration
   shell: |
     export PATH="{{ nix_bin_dir }}:$PATH"
     nix run home-manager -- switch --flake "{{ repo_root }}/home#{{ hm_flake_target }}" -b backup
@@ -29,12 +30,12 @@
 # so registering it as the login shell has to happen here rather than as a
 # home-manager activation hook (which would need passwordless root).
 
-- name: Check for a Nix-managed zsh in this user's profile
+- name: Check for Nix-managed zsh
   stat:
     path: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
   register: hm_zsh
 
-- name: Register Nix-managed zsh in /etc/shells
+- name: Register Nix zsh in /etc/shells
   lineinfile:
     path: /etc/shells
     line: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
@@ -42,7 +43,7 @@
   become: true
   when: hm_zsh.stat.exists
 
-- name: Set Nix-managed zsh as the login shell
+- name: Set Nix zsh as login shell
   user:
     name: "{{ ansible_user_id }}"
     shell: "{{ ansible_env.HOME }}/.nix-profile/bin/zsh"
