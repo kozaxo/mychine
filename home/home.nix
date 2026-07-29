@@ -4,7 +4,7 @@
 
   # home.username / home.homeDirectory are injected per-host in flake.nix.
 
-  home.stateVersion = "24.11";
+  home.stateVersion = "24.05";
 
   # Required for standalone Home Manager on non-NixOS Linux.
   targets.genericLinux.enable = true;
