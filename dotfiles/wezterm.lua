@@ -6,6 +6,22 @@ if wezterm.config_builder then
   config = wezterm.config_builder()
 end
 
+config.font = wezterm.font("Fira Code", { weight = "Regular" })
+config.font_size = 12.0
+
+config.color_scheme = 'Kanagawa (Gogh)'
+
+config.window_background_opacity = 0.65
+config.enable_tab_bar = true
+config.use_fancy_tab_bar = false
+config.hide_tab_bar_if_only_one_tab = true
+config.window_padding = {
+  left = 8,
+  right = 8,
+  top = 8,
+  bottom = 8,
+}
+
 config.keys = {
   {
     key = 'Enter',
