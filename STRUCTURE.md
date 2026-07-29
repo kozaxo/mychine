@@ -105,6 +105,14 @@ sandbox/render correctly on stock Ubuntu. The rule going forward: every
 GUI/system tool has exactly one installer, apt (Brave, WezTerm, VS Code)
 or Nix (everything in `home.packages`), never both.
 
+This also bites you *inside* home-manager itself: don't add
+`home-manager` to `home.packages`. `programs.home-manager.enable = true`
+already installs it into the profile, so listing it again in
+`home.packages` pulls in a second copy from a different evaluation, and
+`pkgs.buildEnv` fails with "two given paths contain a conflicting
+subpath" over `share/zsh/site-functions/_home-manager` when the two
+copies don't byte-for-byte match.
+
 ## GNOME extensions
 
 `gnome.nix`'s `dconf.settings` is the single source of truth — don't

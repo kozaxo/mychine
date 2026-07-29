@@ -15,8 +15,6 @@
   # integration Nix can't provide cleanly on non-NixOS.
 
   home.packages = with pkgs; [
-    home-manager # pin the hm binary in the profile so it persists after every switch
-
     # system utilities
     bat
     curl
