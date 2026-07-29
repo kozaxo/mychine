@@ -30,12 +30,15 @@
 
     # development
     git
+    delta
+    git-lfs
     lazygit
     tmux
     tmuxinator
     direnv
     podman
     podman-compose
+    uv
 
     # security
     gnupg
@@ -63,7 +66,7 @@
     envExtra = ''
       export PATH=$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH
       export PATH=$HOME/bin:/usr/local/bin:$HOME/.local/bin:$PATH
-      export EDITOR=vim
+      export EDITOR="code --wait"
     '';
 
     initContent = lib.mkMerge [
@@ -110,6 +113,14 @@
         "tmux"
         "gpg-agent"
         "keychain"
+        "aliases"
+        "alias-finder"
+        "copypath"
+        "copybuffer"
+        "copyfile"
+        "extract"
+        "universalarchive"
+        "direnv"
       ];
     };
   };
@@ -124,7 +135,20 @@
       init.defaultBranch = "main";
       pull.rebase = false;
       push.autoSetupRemote = true;
-      core.editor = "vim";
+      core.editor = "code --wait";
+      core.pager = "delta";
+      interactive.diffFilter = "delta --color-only";
+      delta.navigate = true;
+      merge.conflictStyle = "diff3";
+      diff.colorMoved = "default";
+      difftool.prompt = false;
+      mergetool.prompt = false;
+      filter.lfs = {
+        clean = "git-lfs clean -- %f";
+        smudge = "git-lfs smudge -- %f";
+        process = "git-lfs filter-process";
+        required = true;
+      };
     };
     ignores = [
       ".DS_Store"
@@ -164,6 +188,11 @@
 
       # status bar at top
       set -g status-position top
+      set -g status-left-length 20
+
+      # show pane index + title on the pane border
+      set -g pane-border-format "#{pane_index} #{pane_title}"
+      set -g pane-border-status bottom
     '';
   };
 

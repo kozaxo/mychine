@@ -74,7 +74,7 @@ in
       clock-show-seconds = true;
       clock-show-weekday = false;
       font-hinting = "slight";
-      gtk-theme = "Kanagawa-Dark";
+      gtk-theme = "kanagawa-dark-Dark";
       icon-theme = "Kanagawa";
       cursor-theme = "Yaru";
     };
@@ -194,7 +194,7 @@ in
     # --- user-theme extension ---
 
     "org/gnome/shell/extensions/user-theme" = {
-      name = "Kanagawa-Dark";
+      name = "kanagawa-dark-Dark";
     };
 
     # --- dash-to-dock ---
@@ -258,6 +258,8 @@ in
       window-gap = 30;
       show-window-position-bar = false;
       use-default-background = true;
+      disable-scratch-in-overview = false;
+      only-scratch-in-overview = false;
     };
 
     "org/gnome/shell/extensions/paperwm/keybindings" = {
@@ -288,6 +290,7 @@ in
     "org/gnome/nautilus/preferences" = {
       default-folder-viewer = "list-view";
       search-view = "list-view";
+      search-filter-time-type = "last_modified";
     };
 
   };
