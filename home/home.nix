@@ -30,6 +30,7 @@
 
     # development
     git
+    xsel
     gh
     delta
     git-lfs
