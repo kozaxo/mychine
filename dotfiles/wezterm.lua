@@ -6,7 +6,10 @@ if wezterm.config_builder then
   config = wezterm.config_builder()
 end
 
-config.font = wezterm.font("Fira Code", { weight = "Regular" })
+-- JetBrains Mono is bundled inside WezTerm itself, so this never depends on
+-- a system/Nix font actually being discoverable — Fira Code kept failing to
+-- resolve because WezTerm is apt-installed and doesn't see Nix-profile fonts.
+config.font = wezterm.font("JetBrains Mono", { weight = "Regular" })
 config.font_size = 12.0
 
 config.color_scheme = 'Everforest Dark Medium (Gogh)'
