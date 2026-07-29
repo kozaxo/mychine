@@ -6,6 +6,9 @@ if wezterm.config_builder then
   config = wezterm.config_builder()
 end
 
+-- font/color_scheme are also recorded in home/theme.nix's `wezterm` table —
+-- Lua can't import that file directly, so keep the two in sync by hand.
+--
 -- JetBrains Mono is bundled inside WezTerm itself, so this never depends on
 -- a system/Nix font actually being discoverable — Fira Code kept failing to
 -- resolve because WezTerm is apt-installed and doesn't see Nix-profile fonts.

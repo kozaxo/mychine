@@ -68,6 +68,14 @@
       export PATH=$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH
       export PATH=$HOME/bin:/usr/local/bin:$HOME/.local/bin:$PATH
       export EDITOR="code --wait"
+
+      # Default `ls` colors are low-contrast on a dark background (dim blue
+      # directories, dark green executables). Override just those with
+      # explicit 256-color codes on top of the system defaults — fixed
+      # xterm-256 palette entries, so unlike the base 16 ANSI colors these
+      # don't shift when the terminal's color scheme changes.
+      eval "$(dircolors -b)"
+      export LS_COLORS="''${LS_COLORS}di=38;5;33:ex=38;5;208;1:ln=38;5;51:"
     '';
 
     initContent = lib.mkMerge [
@@ -93,6 +101,25 @@
             rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
           fi
         }
+
+        # The "kolo" oh-my-zsh theme (sourced above) uses named ANSI colors
+        # (magenta/green/yellow/red), which map to whatever the terminal's
+        # active color scheme defines for those slots — low-contrast under
+        # some schemes. Override with fixed truecolor hex so the prompt
+        # stays legible regardless of theme changes.
+        zstyle ':vcs_info:*' stagedstr '%F{#9ece6a}●'
+        zstyle ':vcs_info:*' unstagedstr '%F{#e0af68}●'
+
+        theme_precmd () {
+          if [[ -z $(git ls-files --other --exclude-standard 2> /dev/null) ]]; then
+            zstyle ':vcs_info:git:*' formats ' [%b%c%u%B%F{#9ece6a}]'
+          else
+            zstyle ':vcs_info:git:*' formats ' [%b%c%u%B%F{#f7768e}●%F{#9ece6a}]'
+          fi
+          vcs_info
+        }
+
+        PROMPT='%B%F{#7dcfff}%c%B%F{#9ece6a}''${vcs_info_msg_0_}%B%F{#7dcfff} %{$reset_color%}%% '
       ''
     ];
 

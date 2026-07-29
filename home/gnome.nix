@@ -3,6 +3,8 @@
 # To refresh from a live system: dconf dump / > ~/dconf-backup.txt
 let
 
+  theme = import ./theme.nix;
+
   # --- everforest-gtk-theme ---
   # Not in nixpkgs, built from source using the upstream install.sh + sassc.
   # -c dark --tweaks medium produces the "Everforest-Dark-Medium" folder
@@ -27,7 +29,7 @@ let
     installPhase = ''
       runHook preInstall
       mkdir -p $out/share/themes
-      bash themes/install.sh -d $out/share/themes -n Everforest -c dark --tweaks medium
+      bash themes/install.sh -d $out/share/themes -n ${theme.gtk.baseName} -c dark --tweaks medium
       runHook postInstall
     '';
   };
@@ -87,9 +89,9 @@ in
       clock-show-seconds = true;
       clock-show-weekday = false;
       font-hinting = "slight";
-      gtk-theme = "Everforest-Dark-Medium";
-      icon-theme = "kora";
-      cursor-theme = "Yaru";
+      gtk-theme = theme.gtk.name;
+      icon-theme = theme.icon.name;
+      cursor-theme = theme.cursor.name;
     };
 
     # --- session ---
@@ -207,7 +209,7 @@ in
     # --- user-theme extension ---
 
     "org/gnome/shell/extensions/user-theme" = {
-      name = "Everforest-Dark-Medium";
+      name = theme.gtk.name;
     };
 
     # --- dash-to-dock ---
@@ -224,16 +226,16 @@ in
 
     "org/gnome/shell/extensions/arcmenu" = {
       enable-menu-hotkey = true;
-      menu-background-color = "rgb(45,53,59)";
-      menu-border-color = "rgb(71,82,88)";
+      menu-background-color = theme.arcmenu.background;
+      menu-border-color = theme.arcmenu.border;
       menu-button-appearance = "Icon";
-      menu-foreground-color = "rgb(211,198,170)";
-      menu-item-active-bg-color = "rgba(167,192,128,0.15)";
-      menu-item-active-fg-color = "rgb(255,255,255)";
-      menu-item-hover-bg-color = "rgba(131,192,146,0.08)";
-      menu-item-hover-fg-color = "rgb(255,255,255)";
+      menu-foreground-color = theme.arcmenu.foreground;
+      menu-item-active-bg-color = theme.arcmenu.activeBg;
+      menu-item-active-fg-color = theme.arcmenu.activeFg;
+      menu-item-hover-bg-color = theme.arcmenu.hoverBg;
+      menu-item-hover-fg-color = theme.arcmenu.hoverFg;
       menu-layout = "Plasma";
-      menu-separator-color = "rgb(71,82,88)";
+      menu-separator-color = theme.arcmenu.separator;
       override-menu-theme = true;
       position-in-panel = "Center";
       search-entry-border-radius = lib.hm.gvariant.mkTuple [
